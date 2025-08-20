@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pap">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Puntra Beibel – Bible Q&A</title>
+  <style>
+    body{font-family:Arial,system-ui,sans-serif;background:#f5f7fb;margin:0}
+    header{background:#4a148c;color:#fff;padding:16px;text-align:center}
+    main{max-width:680px;margin:24px auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+    textarea{width:100%;min-height:90px;font-size:16px;padding:10px;border:1px solid #ddd;border-radius:8px}
+    select{padding:8px;border:1px solid #ddd;border-radius:8px}
+    button{background:#4a148c;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+    button:hover{background:#6a1b9a}
+    .row{display:flex;gap:8px;align-items:center;margin:10px 0}
+    #answer{white-space:pre-wrap;margin-top:14px;color:#333}
+    footer{text-align:center;color:#555;margin:18px 0}
+    .contact a{display:inline-block;margin:0 6px;padding:8px 12px;border-radius:6px;color:#fff;text-decoration:none;font-weight:700}
+    .whatsapp{background:#25D366}.email{background:#1E88E5}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Puntra Beibel 📖</h1>
+    <p>Ask your Bible questions — Papiamentu • English • Español • Nederlands</p>
+  </header>
+
+  <main>
+    <div class="row">
+      <label for="lang">Idioma / Language:</label>
+      <select id="lang">
+        <option value="pap">Papiamentu</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="nl">Nederlands</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <input type="checkbox" id="patronchi"/>
+      <label for="patronchi">Mira tambe respuesta via <strong>Patronchi Model</strong></label>
+    </div>
+
+    <textarea id="question" placeholder="Skribi bo pregunta bíbliko..."></textarea>
+    <div><button id="askBtn">Ask</button></div>
+
+    <div id="answer"></div>
+    <div id="answerPatronchi" style="margin-top:10px;"></div>
+  </main>
+
+  <footer>
+    <div>Need more help? Contact:</div>
+    <div class="contact">
+      <!-- replace number/email -->
+      <a href="https://wa.me/59995123456" class="whatsapp">💬 WhatsApp</a>
+      <a href="mailto:youremail@example.com" class="email">📧 Email</a>
+    </div>
+  </footer>
+
+  <script>
+    // Because frontend + backend will live together on Vercel:
+    const BACKEND_URL = "/api/ask";
+
+    const askBtn = document.getElementById("askBtn");
+    askBtn.addEventListener("click", async () => {
+      const q = document.getElementById("question").value.trim();
+      const lang = document.getElementById("lang").value;
+      const usePatronchi = document.getElementById("patronchi").checked;
+
+      const box = document.getElementById("answer");
+      const boxP = document.getElementById("answerPatronchi");
+      box.textContent = "";
+      boxP.textContent = "";
+
+      if (!q) { box.textContent = "⚠️ Por fabor, pone un pregunta."; return; }
+
+      box.textContent = "⏳ Ta pensa…";
+      if (usePatronchi) boxP.textContent = "⏳ Ta pensa (Patronchi)…";
+
+      try {
+        // Regular
+        const r1 = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ question: q, lang, mode: "regular" })
+        });
+        const d1 = await r1.json();
+        box.textContent = d1.answer ? "✅ " + d1.answer : "❌ " + (d1.error || "No answer.");
+
+        // Patronchi (optional second call)
+        if (usePatronchi) {
+          const r2 = await fetch(BACKEND_URL, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ question: q, lang, mode: "patronchi" })
+          });
+          const d2 = await r2.json();
+          boxP.innerHTML = d2.answer
+            ? "🌀 <strong>Patronchi:</strong> " + d2.answer
+            : "❌ " + (d2.error || "No answer (Patronchi).");
+        }
+      } catch (e) {
+        box.textContent = "❌ Network error: " + e.message;
+        if (usePatronchi) boxP.textContent = "❌ Network error (Patronchi): " + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
